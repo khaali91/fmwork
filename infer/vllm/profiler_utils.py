@@ -32,21 +32,21 @@ class FMWorkProfiler:
         Initializes the FMWorkProfiler.
         """
         self.output_dir = Path(output_dir)
-    self.output_dir.mkdir(parents=True, exist_ok=True)
-    self.enabled = enabled
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.enabled = enabled
 
-    self.config = {
-        'wait' : wait_steps,
-        'warmup' : warmup_steps,
-        'active' : active_steps,
-        'profile_memory' : profile_memory,
-        'with_stack' : with_stack,
-        'with_flops' : with_flops,
-        'record_shapes' : record_shapes
-    }
+        self.config = {
+            'wait': wait_steps,
+            'warmup': warmup_steps,
+            'active': active_steps,
+            'profile_memory': profile_memory,
+            'with_stack': with_stack,
+            'with_flops': with_flops,
+            'record_shapes': record_shapes
+        }
 
-    self.profiler = None
-    self.step_count = 0
+        self.profiler = None
+        self.step_count = 0
 
     def start(self):
 
