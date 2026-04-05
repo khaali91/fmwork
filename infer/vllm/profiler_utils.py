@@ -28,11 +28,10 @@ class FMWorkProfiler:
         with_flops: bool = True,
         record_shapes: bool = True
     ):
-    """
-    Initializes the FMWorkProfiler.
-    """
-
-    self.output_dir = Path(output_dir)
+        """
+        Initializes the FMWorkProfiler.
+        """
+        self.output_dir = Path(output_dir)
     self.output_dir.mkdir(parents=True, exist_ok=True)
     self.enabled = enabled
 
