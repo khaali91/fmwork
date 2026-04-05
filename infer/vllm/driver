@@ -5,6 +5,7 @@ import fmwork
 import os
 import torch
 import vllm
+from profiler_utils import FMWorkProfiler, MemoryMonitor
 
 #   -------------
 #   main function
@@ -41,6 +42,12 @@ def setup_args():
     parser.add('--batch_multiplier', type=int, default=1)
     parser.add('--tp_size',          type=int, required=True)
     parser.add('--reps',             type=int, default=5)
+    parser.add('--enable_profiler',        action='store_true')
+    parser.add('--profiler_output_dir',    type=str, default='/mnt/home/kmcmill/outputs/profiles')
+    parser.add('--profiler_wait_steps',    type=int, default=1)
+    parser.add('--profiler_warmup_steps',  type=int, default=1)
+    parser.add('--profiler_active_steps',  type=int, default=3)
+    parser.add('--enable_memory_monitor',  action='store_true')
     args, opts = parser.parse_known_args()
 
     args.model_path = (
@@ -151,10 +158,44 @@ def bench_combo(
 ):
     fmwork.banner('RUN', input_size, '/', output_size, '/', batch_size)
 
+    # Initialize profiler if enabled
+    profiler = None
+    memory_monitor = None
+    
+    if args.enable_profiler:
+        profile_dir = os.path.join(
+            args.profiler_output_dir,
+            f"model_{args.model_name.replace('/', '_')}",
+            f"i{input_size}_o{output_size}_b{batch_size}_tp{args.tp_size}"
+        )
+        profiler = FMworkProfiler(
+            output_dir=profile_dir,
+            enabled=True,
+            wait_steps=args.profiler_wait_steps,
+            warmup_steps=args.profiler_warmup_steps,
+            active_steps=args.profiler_active_steps
+        )
+        profiler.start()
+        print(f"[PROFILER] Initialized for config: i{input_size}_o{output_size}_b{batch_size}")
+    
+    if args.enable_memory_monitor:
+        mem_dir = os.path.join(
+            args.profiler_output_dir,
+            f"model_{args.model_name.replace('/', '_')}",
+            f"i{input_size}_o{output_size}_b{batch_size}_tp{args.tp_size}",
+            "memory"
+        )
+        memory_monitor = MemoryMonitor(output_dir=mem_dir)
+        memory_monitor.snapshot("before_generation")
+        print(f"[MEMORY] Initialized for config: i{input_size}_o{output_size}_b{batch_size}")
+
     ts  = []
     dts = []
 
     for rep in range(args.reps):
+        
+        if memory_monitor:
+            memory_monitor.snapshot(f"rep_{rep}_start")
 
         timings = bench_combo_rep(
             args,
@@ -164,11 +205,27 @@ def bench_combo(
 
         ts.extend(timings[:2])
         dts.append(timings[2])
+        
+        if profiler:
+            profiler.step()
+        
+        if memory_monitor:
+            memory_monitor.snapshot(f"rep_{rep}_end")
 
     iob = (input_size, output_size, batch_size)
 
     all_ts[iob]  = ts
     all_dts[iob] = dts
+    
+    # Cleanup profiler and memory monitor
+    if profiler:
+        profiler.stop()
+        print(f"[PROFILER] Completed for config: i{input_size}_o{output_size}_b{batch_size}")
+    
+    if memory_monitor:
+        memory_monitor.save()
+        print(f"[MEMORY] Saved snapshots for config: i{input_size}_o{output_size}_b{batch_size}")
+
 
 def bench_combo_rep(
     args,
