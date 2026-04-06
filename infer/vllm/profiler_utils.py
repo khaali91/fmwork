@@ -99,7 +99,7 @@ class FMWorkProfiler:
 class MemoryMonitor:
 
     def __init__(self, outout_dir: str):
-        self.output_dir = outout_dir
+        self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.snapshots = []
     

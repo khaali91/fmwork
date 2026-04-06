@@ -168,7 +168,7 @@ def bench_combo(
             f"model_{args.model_name.replace('/', '_')}",
             f"i{input_size}_o{output_size}_b{batch_size}_tp{args.tp_size}"
         )
-        profiler = FMworkProfiler(
+        profiler = FMWorkProfiler(
             output_dir=profile_dir,
             enabled=True,
             wait_steps=args.profiler_wait_steps,
